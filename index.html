@@ -1,48 +1,191 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>erp-w</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(135deg, #141e30 0%, #243b55 100%);
-      color: #fff;
-    }
-    .card {
-      text-align: center;
-      padding: 48px 64px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-      letter-spacing: 2px;
-    }
-    p {
-      font-size: 1rem;
-      opacity: 0.85;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP Web Technology Hub - erp-w.com</title>
+<meta name="description" content="erp-w.com: hands-on ERP web technology — modular architecture, finance modules, MRP, approval workflows, system integration and enterprise UI for browser-based ERP systems.">
+<link rel="canonical" href="https://erp-w.com/">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/">
+<meta property="og:title" content="ERP Web Technology Hub - erp-w.com">
+<meta property="og:description" content="Hands-on ERP web technology: modular architecture, finance modules, MRP, approval workflows, system integration and enterprise UI.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://erp-w.com/">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "ERP Web Technology Hub",
+  "url": "https://erp-w.com/",
+  "description": "Hands-on ERP web technology: modular architecture, finance modules, MRP, approval workflows, system integration and enterprise UI for browser-based ERP systems.",
+  "inLanguage": "en"
+}
+</script>
 </head>
 <body>
-  <div class="card">
-    <h1>erp-w</h1>
-    <p>项目建设中，敬请期待……</p>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/" hreflang="zh-CN">中文</a>
+    </nav>
   </div>
+</header>
+
+<!-- hero -->
+<section class="hero">
+  <div class="wrap">
+    <h1>ERP Web Technology Hub</h1>
+    <p>Practical engineering notes on building browser-based ERP systems: architecture, finance, manufacturing, approval workflows, integration and enterprise UI — written from real projects.</p>
+    <a class="btn" href="/articles/">Browse Articles</a>
+    <a class="btn btn-ghost" href="/articles/arch/">Architecture Guide</a>
+  </div>
+</section>
+
+<!-- sections -->
+<section class="block">
+  <div class="wrap">
+    <h2 class="block-title">Sections<small>Find content by topic</small></h2>
+    <div class="grid">
+      <a class="card" href="/articles/arch/">
+        <h3>Architecture</h3>
+        <p>Modular monolith vs microservices, technology selection, multi-org design for web ERP.</p>
+        <span class="meta">1 article</span>
+      </a>
+      <a class="card" href="/articles/finance/">
+        <h3>Finance</h3>
+        <p>General ledger, AR/AP, costing and the document-to-ledger pipeline.</p>
+        <span class="meta">1 article</span>
+      </a>
+      <a class="card" href="/articles/prod/">
+        <h3>Manufacturing &amp; MRP</h3>
+        <p>BOM explosion, MRP calculation, work orders and shop-floor data capture.</p>
+        <span class="meta">1 article</span>
+      </a>
+      <a class="card" href="/articles/workflow/">
+        <h3>Workflow</h3>
+        <p>Visual process designers, approval chains, countersign and or-sign models.</p>
+        <span class="meta">1 article</span>
+      </a>
+      <a class="card" href="/articles/integration/">
+        <h3>Integration</h3>
+        <p>Connecting ERP with e-commerce, MES, banking APIs and third-party systems.</p>
+        <span class="meta">1 article</span>
+      </a>
+      <a class="card" href="/articles/ui/">
+        <h3>Enterprise UI</h3>
+        <p>Menu systems under complex permissions, heavy-duty tables and enterprise UX.</p>
+        <span class="meta">1 article</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- latest articles -->
+<section class="block">
+  <div class="wrap">
+    <h2 class="block-title">Latest Articles<small>All content in the article list</small></h2>
+    <div class="grid">
+      <a class="card" href="/articles/modular-monolith.html">
+        <h3>Modular Monolith: A Practical Architecture for Web-Based ERP</h3>
+        <p>Why a modular monolith beats microservices for most web ERP projects, and how to draw the module boundaries.</p>
+        <span class="meta">Architecture · 2026-10-04</span>
+      </a>
+      <a class="card" href="/articles/gl-document-integration.html">
+        <h3>Integrating General Ledger with Business Documents</h3>
+        <p>Designing the document-to-voucher pipeline so every business event lands in the books automatically.</p>
+        <span class="meta">Finance · 2026-10-04</span>
+      </a>
+      <a class="card" href="/articles/bom-mrp-web.html">
+        <h3>Implementing BOM Explosion and MRP in a Web ERP</h3>
+        <p>Recursive BOM traversal, MRP netting logic, and keeping calculation time acceptable in the browser era.</p>
+        <span class="meta">Manufacturing · 2026-10-04</span>
+      </a>
+      <a class="card" href="/articles/visual-workflow-engine.html">
+        <h3>Building a Visual Approval Workflow Engine</h3>
+        <p>A pragmatic workflow engine model: node types, state machines, and versioning process definitions.</p>
+        <span class="meta">Workflow · 2026-10-04</span>
+      </a>
+      <a class="card" href="/articles/ecommerce-integration.html">
+        <h3>Integrating a Web ERP with E-commerce Platforms</h3>
+        <p>Order, inventory and product sync patterns between ERP and marketplaces, with idempotency as the baseline.</p>
+        <span class="meta">Integration · 2026-10-04</span>
+      </a>
+      <a class="card" href="/articles/enterprise-ui-patterns.html">
+        <h3>Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables</h3>
+        <p>Menu trees driven by permissions, and table rendering strategies for hundreds of columns and thousands of rows.</p>
+        <span class="meta">Enterprise UI · 2026-10-04</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- features -->
+<section class="block">
+  <div class="wrap">
+    <h2 class="block-title">About This Site<small>Why it is worth bookmarking</small></h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Systematic Content</h3>
+        <p>Six sections covering the full web ERP stack, from architecture to UI details.</p>
+      </div>
+      <div class="card">
+        <h3>Instant Loading</h3>
+        <p>Pure static pages: no scripts, no ads, fast everywhere including low-bandwidth networks.</p>
+      </div>
+      <div class="card">
+        <h3>Bilingual by Default</h3>
+        <p>Every article in English and Chinese. 每篇文章均提供中英文版本，默认英文。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
 </body>
 </html>

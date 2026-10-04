@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modular Monolith: A Practical Architecture for Web-Based ERP - erp-w.com</title>
+<meta name="description" content="Why a modular monolith beats microservices for most web ERP projects: module boundary design, boundary enforcement, and the real criteria for splitting services.">
+<link rel="canonical" href="https://erp-w.com/articles/modular-monolith.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/modular-monolith.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/modular-monolith.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/modular-monolith.html">
+<meta property="og:title" content="Modular Monolith: A Practical Architecture for Web-Based ERP - erp-w.com">
+<meta property="og:description" content="Why a modular monolith beats microservices for most web ERP projects, and how to draw the module boundaries.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/modular-monolith.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Modular Monolith: A Practical Architecture for Web-Based ERP",
+  "description": "Why a modular monolith beats microservices for most web ERP projects: module boundary design, boundary enforcement, and the real criteria for splitting services.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/modular-monolith.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Architecture", "item": "https://erp-w.com/articles/arch/" },
+    { "@type": "ListItem", "position": 3, "name": "Modular Monolith: A Practical Architecture for Web-Based ERP", "item": "https://erp-w.com/articles/modular-monolith.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/modular-monolith.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li>Modular Monolith: A Practical Architecture for Web-Based ERP</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Modular Monolith: A Practical Architecture for Web-Based ERP</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Architecture</p>
+
+    <p>Every team building a web-based ERP eventually faces the same question: microservices or monolith? After delivering several mid-size ERP systems, our default answer is a <strong>modular monolith</strong> — one deployable unit, strictly separated internal modules. This article explains why, and how to keep the monolith from collapsing into a big ball of mud.</p>
+
+    <h2>Why not microservices</h2>
+    <p>Microservices solve organizational problems: independent deployment by teams of ten-plus engineers, independent scaling of hot paths, polyglot persistence justified by specialized workloads. A typical web ERP project has a five-to-twenty-person team, one deployment window, and a shared relational database where finance, inventory and production data must be consistent anyway.</p>
+    <p>In that setting microservices mostly buy cost: distributed transactions for document posting, eventual consistency visible to users, duplicated boilerplate per service, and an operations burden (service discovery, tracing, versioning) that small teams cannot carry. The failure mode is familiar: "microservices" that all read and write the same database — the worst of both worlds.</p>
+
+    <h2>What a modular monolith actually means</h2>
+    <p>A modular monolith is a single process and a single deployment, but internally it is organized as a set of modules with hard boundaries. Each module owns:</p>
+    <ul>
+      <li>Its <strong>tables</strong> — no foreign keys across module boundaries, no <code>JOIN</code> into another module's tables.</li>
+      <li>Its <strong>public API</strong> — other modules call in-memory interfaces or application services, never repositories of another module.</li>
+      <li>Its <strong>domain events</strong> — state changes are announced through an internal event bus so dependent modules react without tight coupling.</li>
+    </ul>
+    <p>The discipline is what separates this from a layered monolith. The deployment is unified; the codebase is not a free-for-all.</p>
+
+    <h2>Drawing the module boundaries</h2>
+    <p>We slice by business capability, mirroring how the customer organization thinks:</p>
+    <ul>
+      <li><strong>Base data</strong> — items, customers, suppliers, warehouses, units, currencies.</li>
+      <li><strong>Inventory</strong> — stock levels, inbound, outbound, transfers, counting.</li>
+      <li><strong>Purchasing and sales</strong> — orders, receipts, deliveries, pricing.</li>
+      <li><strong>Finance</strong> — chart of accounts, vouchers, AR/AP, period closing. See <a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a>.</li>
+      <li><strong>Production</strong> — BOM, MRP, work orders. See <a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a>.</li>
+      <li><strong>Workflow</strong> — approval processes attached to documents from any module.</li>
+    </ul>
+    <p>Two rules of thumb: a module should map to one bounded context in the domain, and cross-module calls should feel slightly painful. If calling another module is as easy as calling your own code, the boundary does not exist.</p>
+
+    <h2>Enforcing the boundaries</h2>
+    <p>Conventions alone rot under deadline pressure. Enforce boundaries mechanically:</p>
+    <ol>
+      <li><strong>Package by module, not by layer.</strong> Each module contains its own controllers, services, repositories and entities. A global <code>service</code> or <code>dao</code> package is the first step toward mud.</li>
+      <li><strong>Static analysis gate.</strong> Tools such as ArchUnit (Java) or dependency-cruiser (TypeScript) fail the build when module A imports module B's internals. Run it in CI on every commit.</li>
+      <li><strong>Module-owned migrations.</strong> Each module applies its own schema migrations. Shared migration folders hide cross-module table coupling.</li>
+      <li><strong>Event bus for reactions.</strong> When a sales delivery is confirmed, inventory reacts to <code>DeliveryConfirmed</code> rather than the sales module calling inventory directly. This keeps the dependency graph acyclic.</li>
+    </ol>
+
+    <h2>When a module genuinely deserves to split out</h2>
+    <p>A module earns its own service when one of these is measurably true:</p>
+    <ul>
+      <li>It has a <strong>different scaling profile</strong> — e.g., report generation saturating CPU while transactions wait.</li>
+      <li>It has <strong>different availability requirements</strong> — e.g., a notification service that must survive while the core is down for period closing.</li>
+      <li>A <strong>separate team</strong> owns it and ships on a different cadence.</li>
+    </ul>
+    <p>Because the boundary was already enforced in-process, extracting a module into a service is mostly packaging: replace the in-memory interface with an HTTP or message client. Teams that start with microservices pay this cost for every module from day one; the modular monolith pays it only when the data justifies it.</p>
+
+    <h2>The frontend side</h2>
+    <p>Modularity does not stop at the API. The web frontend should mirror the module structure: one route subtree per module, feature-based code organization, and a permission system that decides which menu trees a user sees at all — the pattern described in <a href="/articles/enterprise-ui-patterns.html">Enterprise Web UI Patterns</a>.</p>
+
+    <h2>Conclusion</h2>
+    <p>For most web ERP projects, the debate is not monolith versus microservices — it is disciplined monolith versus accidental monolith. Choose the modular monolith, enforce boundaries with tools, and let real operational data tell you if and when a module deserves to leave the process. You will ship faster, debug easier, and still keep the escape hatch open.</p>
+
+    <nav class="article-nav">
+      <span></span>
+      <a href="/articles/gl-document-integration.html">Next: Integrating General Ledger with Business Documents →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>

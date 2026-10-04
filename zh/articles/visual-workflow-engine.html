@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>构建可视化审批工作流引擎 - erp-w.com</title>
+<meta name="description" content="务实的 Web 版 ERP 审批流引擎：四种节点类型覆盖真实审批、简单的实例状态机，以及不中断在途实例的流程定义版本管理。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/visual-workflow-engine.html">
+<meta property="og:title" content="构建可视化审批工作流引擎 - erp-w.com">
+<meta property="og:description" content="务实的流程引擎模型：节点类型、状态机与流程版本管理。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/visual-workflow-engine.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "构建可视化审批工作流引擎",
+  "description": "务实的 Web 版 ERP 审批流引擎：四种节点类型覆盖真实审批、简单的实例状态机，以及不中断在途实例的流程定义版本管理。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/visual-workflow-engine.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "工作流审批", "item": "https://erp-w.com/zh/articles/workflow/" },
+    { "@type": "ListItem", "position": 3, "name": "构建可视化审批工作流引擎", "item": "https://erp-w.com/zh/articles/visual-workflow-engine.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/visual-workflow-engine.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li>构建可视化审批工作流引擎</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>构建可视化审批工作流引擎</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：工作流审批</p>
+
+    <p>每个 ERP 最终都需要审批：超限采购单、价格折扣、工单下达、红字发票。买一套完整 BPM 套件太重；为每个场景手写 <code>if (amount > 50000) sendTo(manager)</code> 又烂得很快。中间路线是一个带可视化设计器的小型工作流引擎。本文介绍我们搭建的模型——刻意务实。</p>
+
+    <h2>砍需求</h2>
+    <p>忍住打造通用 BPM 引擎的冲动。根据我们的经验，ERP 里的审批流恰好只需要四种节点：</p>
+    <ul>
+      <li><strong>开始 / 结束</strong>——定义图的起点和终点。</li>
+      <li><strong>审批</strong>——分配给某人或某角色（部门经理、财务主管）的任务，带超时和升级路径。</li>
+      <li><strong>条件</strong>——针对单据字段的布尔表达式（金额、部门、物料类别），决定走哪条分支。</li>
+      <li><strong>会签组</strong>——多个审批人，与模式（全部通过）或或模式（第一人定夺）。</li>
+    </ul>
+    <p>四种节点覆盖了我们见过的几乎所有真实审批。任何更花哨的东西——循环、子流程、消息事件——正是通用 BPM 工具把 80% 的复杂度预算花在 5% 的价值上的地方。</p>
+
+    <h2>定义、版本与实例</h2>
+    <p><strong>流程定义</strong>是一张带版本的图：节点、边、每节点配置。<strong>实例</strong>是绑定到具体业务单据（采购单、折扣申请）的一次运行。保证安全的规则：</p>
+    <ul>
+      <li>定义<strong>发布后不可变</strong>。修改已发布的流程产生新版本。</li>
+      <li>实例<strong>绑定启动时所处的定义版本</strong>并存快照。v3 启动的流程在 v4 发布后仍按 v3 跑完——在途单据的规则绝不静默变化。</li>
+      <li>只有一个版本是<strong>新实例的默认版本</strong>；旧版本随其实例自然完结而退役。</li>
+    </ul>
+
+    <h2>实例状态机</h2>
+    <p>实例状态模型要简单到令人尴尬。每个实例有一个当前节点；每个节点任务有 pending / approved / rejected 状态。迁移规则：</p>
+    <ol>
+      <li>启动 → 创建首个节点任务，按节点配置分配（角色解析在分配时刻发生——职位空缺不会无声卡死流程，会升级）。</li>
+      <li>审批人操作 → 任务完结，引擎评估该节点的完成规则（会签模式、投票阈值）。</li>
+      <li>按顺序求值出边条件，选出下一节点。</li>
+      <li>拒绝 → 实例进入终态 <code>REJECTED</code>，可选"重新提交"路径重启流程。</li>
+      <li>没有下一节点 → <code>APPROVED</code>，引擎触发业务模块监听的事件。</li>
+    </ol>
+    <p>每个动作——分配、通过、拒绝、升级——都是实例上一条 append-only 的日志记录。经理看到的审批轨迹就是这条日志的渲染；审计证据也是它。</p>
+
+    <h2>与业务模块集成</h2>
+    <p>引擎拥有<em>编排</em>，从不拥有<em>业务数据</em>。业务模块把流程挂到某类单据上，订阅 <code>APPROVED</code> / <code>REJECTED</code> 事件。这让引擎成为<a href="/zh/articles/modular-monolith.html">模块化单体</a>中的纯组件：销售、采购、生产、财务共用同一个引擎，而引擎不需要知道"销售订单"是什么。超时和升级由一个定时清扫器驱动，扫描超过期限的待办任务。</p>
+
+    <h2>可视化设计器</h2>
+    <p>设计器是画布：顾问拖四种节点、连线、在侧栏配置每个节点。底层编辑的就是引擎执行的那份 JSON 图——没有模型到模型的翻译。发布前的校验检查无聊但致命的问题：不可达节点、没有 else 分支的条件、没有分配人的审批节点。画布保持简单（网格吸附、直线连边）就好——你画的是审批链，不是电路板。同样高密度的企业界面渲染技巧，见<a href="/zh/articles/enterprise-ui-patterns.html">企业级 Web 界面模式</a>。</p>
+
+    <h2>结语</h2>
+    <p>工作流引擎的价值恰恰在于它比人们预想的更小：四种节点、不可变的带版本定义、逐节点状态机、append-only 动作日志、基于事件的集成。把这些做好，ERP 里所有现在和未来的审批都从代码变成配置。</p>
+
+    <nav class="article-nav">
+      <a href="/zh/articles/bom-mrp-web.html">← 上一篇：Web 版 ERP 的 BOM 展开与 MRP 运算实现</a>
+      <a href="/zh/articles/ecommerce-integration.html">下一篇：Web 版 ERP 与电商平台集成方案 →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

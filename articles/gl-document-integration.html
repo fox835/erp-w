@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrating General Ledger with Business Documents - erp-w.com</title>
+<meta name="description" content="Designing the document-to-voucher pipeline in a web ERP: posting templates per document type, an idempotent posting engine, and reconciliation that auditors accept.">
+<link rel="canonical" href="https://erp-w.com/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/gl-document-integration.html">
+<meta property="og:title" content="Integrating General Ledger with Business Documents - erp-w.com">
+<meta property="og:description" content="Designing the document-to-voucher pipeline so every business event lands in the books automatically.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/gl-document-integration.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Integrating General Ledger with Business Documents",
+  "description": "Designing the document-to-voucher pipeline in a web ERP: posting templates per document type, an idempotent posting engine, and reconciliation that auditors accept.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/gl-document-integration.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Finance", "item": "https://erp-w.com/articles/finance/" },
+    { "@type": "ListItem", "position": 3, "name": "Integrating General Ledger with Business Documents", "item": "https://erp-w.com/articles/gl-document-integration.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/gl-document-integration.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li>Integrating General Ledger with Business Documents</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Integrating General Ledger with Business Documents</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Finance</p>
+
+    <p>The single most valuable property of an ERP system is this: every business document — a sales delivery, a purchase receipt, a payment — lands in the general ledger without anyone re-keying it. When that pipeline works, the books are always current and month-end closing stops being a firefight. This article describes the document-to-voucher design we use in our web ERP projects.</p>
+
+    <h2>The core idea: business documents know nothing about accounting</h2>
+    <p>Keep the accounting logic out of business modules. A sales delivery module should emit facts — "100 units of item A left warehouse W to customer C at price P" — and a dedicated posting engine decides what that means for the ledger. This separation, natural in a <a href="/articles/modular-monolith.html">modular monolith</a>, means accounting rules can evolve (new tax rates, new account mappings) without touching the operational code.</p>
+
+    <h2>The posting pipeline</h2>
+    <ol>
+      <li><strong>Business event</strong> — a document is confirmed (posted) in its own module. Confirmation is a state transition, not a save: a confirmed document is frozen.</li>
+      <li><strong>Posting request</strong> — the module publishes a posting request containing the document type, key, amounts and dimensions (org, department, project, currency).</li>
+      <li><strong>Template resolution</strong> — the posting engine resolves a <em>posting template</em> for the document type. A template maps document fields to debit/credit account rules: "delivery of goods → Dr. COGS, Cr. Inventory; receivable → Dr. AR, Cr. Revenue".</li>
+      <li><strong>Voucher generation</strong> — the engine generates a balanced voucher (debits equal credits, enforced as a hard invariant) in the accounting currency, attaching the source document reference to every line.</li>
+      <li><strong>Ledger write</strong> — the voucher posts to the GL in the same transaction as the document confirmation whenever the database allows, or via an outbox pattern when modules are decoupled.</li>
+    </ol>
+
+    <h2>Posting templates as configuration</h2>
+    <p>Never hard-code account numbers. A posting template is a small rule table, usually maintained by the implementation consultant: for each document type and business scenario (warehouse transfer, consignment, return), it declares which accounts are debited and credited, and how amounts are derived from document fields. Templates are versioned and effective-dated, so a tax-rate change starting next quarter is a new template version, not a code deploy.</p>
+    <p>Keep templates simple — a list of lines with account, direction, amount expression and dimension mapping. The moment templates grow loops and conditionals, consultants cannot maintain them and you have built a second programming language badly.</p>
+
+    <h2>Idempotency: posting must be safe to repeat</h2>
+    <p>Retries are guaranteed in any web system. The posting engine must be idempotent: posting the same document twice produces one voucher, not two. Two mechanisms make this practical:</p>
+    <ul>
+      <li><strong>Natural key on the voucher</strong> — a unique constraint on <code>(source_document_type, source_document_id)</code> makes duplicate insertion fail loudly.</li>
+      <li><strong>Outbox pattern</strong> — the posting request is written to an outbox table in the same transaction as the document confirmation, then relayed asynchronously. If the relay crashes, it re-reads the outbox; the unique key deduplicates.</li>
+    </ul>
+    <p>Reversals follow the same rule: cancelling a document generates a <em>reversing voucher</em>, never an in-place edit. The ledger is append-only; corrections are new entries.</p>
+
+    <h2>Period control and closing</h2>
+    <p>Two guard rails keep the ledger sane:</p>
+    <ul>
+      <li><strong>Period status</strong> — each accounting period is open, soft-closed (no user entries, engine entries allowed) or closed (nothing). The posting engine checks period status before writing.</li>
+      <li><strong>Subledger reconciliation</strong> — AR/AP subledger balances and inventory valuation are reconciled against GL control accounts continuously, and any drift is flagged on a dashboard rather than discovered at audit time.</li>
+    </ul>
+
+    <h2>What the user sees</h2>
+    <p>From the user's perspective the experience is simple: confirm a document, then click "view voucher" to see the generated entries, or "posting log" when something went wrong. Never hide failures — a document that is confirmed but failed to post is the worst possible state, so the UI surfaces it immediately and blocks period closing until resolved. For how this plays out in the frontend, see <a href="/articles/enterprise-ui-patterns.html">Enterprise Web UI Patterns</a>; the production side of the same pipeline feeds material costing, described in <a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP</a>.</p>
+
+    <h2>Conclusion</h2>
+    <p>Treat the general ledger as a consumer of business events, generate vouchers from declarative templates, make posting idempotent and append-only, and close periods with reconciliation dashboards instead of spreadsheets. Do this and finance stops being the bottleneck of the ERP — it becomes the part that is always right.</p>
+
+    <nav class="article-nav">
+      <a href="/articles/modular-monolith.html">← Previous: Modular Monolith: A Practical Architecture for Web-Based ERP</a>
+      <a href="/articles/bom-mrp-web.html">Next: Implementing BOM Explosion and MRP in a Web ERP →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>

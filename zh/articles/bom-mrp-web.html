@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 版 ERP 的 BOM 展开与 MRP 运算实现 - erp-w.com</title>
+<meta name="description" content="Web 版 ERP 中 BOM 与 MRP 的工程实现：BOM 树建模、带环检测与记忆化的递归展开、逐层净需求计算，以及让运算速度配得上浏览器的优化手段。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/bom-mrp-web.html">
+<meta property="og:title" content="Web 版 ERP 的 BOM 展开与 MRP 运算实现 - erp-w.com">
+<meta property="og:description" content="BOM 递归遍历、MRP 净需求计算与运算性能优化。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/bom-mrp-web.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Web 版 ERP 的 BOM 展开与 MRP 运算实现",
+  "description": "Web 版 ERP 中 BOM 与 MRP 的工程实现：BOM 树建模、带环检测与记忆化的递归展开、逐层净需求计算，以及运算性能优化。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/bom-mrp-web.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "生产与 MRP", "item": "https://erp-w.com/zh/articles/prod/" },
+    { "@type": "ListItem", "position": 3, "name": "Web 版 ERP 的 BOM 展开与 MRP 运算实现", "item": "https://erp-w.com/zh/articles/bom-mrp-web.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/bom-mrp-web.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li>Web 版 ERP 的 BOM 展开与 MRP 运算实现</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Web 版 ERP 的 BOM 展开与 MRP 运算实现</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：生产与 MRP</p>
+
+    <p>BOM 展开和 MRP 运算是 ERP 生产模块的立身之本——也是天真实现在真实数据上崩盘的地方。一个十层 BOM 的产成品横跨几百张订单，展开就是几万行组件需求。本文完整走一遍我们使用的数据模型与算法，针对 Web 架构调校：计划员期望几秒内看到结果。</p>
+
+    <h2>BOM 建模</h2>
+    <p>BOM 是有向无环图，存为边表：<code>(父项物料ID, 子项物料ID, 用量, 损耗率, 版本, 生效日期)</code>。三个建模决策至关重要：</p>
+    <ul>
+      <li><strong>版本与生效日期</strong>——换料不能改写历史。每条 BOM 边带版本和生效区间；展开永远取"计划日期生效的那个版本"。</li>
+      <li><strong>边上的损耗/良率</strong>——某道工序损耗 6% 所以要用 1.06 个，这是边的数据，不该让 MRP 去猜。</li>
+      <li><strong>虚拟件</strong>——从不入库的半成品应标记 <code>phantom</code> 并直接穿透展开，否则 MRP 会为一个没人单独生产的东西生成计划订单。</li>
+    </ul>
+
+    <h2>展开：递归、记忆化、防环</h2>
+    <p>展开就是把用量沿树逐层相乘。两个不可妥协的护栏：</p>
+    <ol>
+      <li><strong>环检测</strong>——每条路径维护已访问集合；某物料在自己的路径上再次出现说明主数据出了问题，运算必须中止并报出环的名称，而不是递归到栈溢出。</li>
+      <li><strong>记忆化</strong>——同一个半成品子件经常出现在很多分支里。按物料（以物料、版本、数量系数为键）缓存展开子树，运算复杂度从指数级坍缩到接近"不同物料数线性"。</li>
+    </ol>
+    <p>实践中，触及 5000 个不同物料的展开在服务端一秒以内完成。结果存为快照，计划员可以审计 MRP 运行时到底看到了什么。</p>
+
+    <h2>净需求：从毛需求到计划订单</h2>
+    <p>经典的逐物料、逐计划期（通常按天或按周）净需求算法：</p>
+    <ol>
+      <li><strong>毛需求</strong>——展开需求之和，加独立需求（销售预测、备件）。</li>
+      <li><strong>计划接收</strong>——该期到货的未结采购订单和已确认计划订单。</li>
+      <li><strong>预计可用量</strong>——现存量减安全库存，按期滚动。</li>
+      <li><strong>净需求</strong>——预计可用量变负时产生计划订单，按物料的批量规则（批对批、固定批量、最小批量）取值，并按提前期倒排。</li>
+    </ol>
+    <p>按低阶码顺序处理物料（子件排在父项之后），保证父项需求全部已知后才对子件净需求。低阶码在每次 BOM 版本变更时算一次，不要每次 MRP 运行都算。</p>
+
+    <h2>速度保障</h2>
+    <ul>
+      <li><strong>MRP 作为批处理运行</strong>，运行开始时刻对输入（库存、未结订单、BOM 版本）做快照。针对活数据的交互式运行结果不可复现，只会惹怒计划员。</li>
+      <li><strong>增量再生</strong>——BOM 子树或需求变化时只重跑受影响的物料；每晚全量，日间按需增量。</li>
+      <li><strong>结果即数据，不是魔法</strong>——每个计划订单可回溯到它的溯源信息（哪些父项订单驱动了它），计划员可以追数而不是盲信。</li>
+    </ul>
+
+    <h2>从计划订单到车间</h2>
+    <p>计划订单经计划员确认后转为工单。工单携带自己的 BOM 快照（是拷贝不是引用——设计 BOM 会漂移）和工艺路线；领料与完工回写库存，库存变动走<a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a>中描述的同一财务管线。报废与返工记到工单上，成本才反映现实。工单下达的审批复用<a href="/zh/articles/visual-workflow-engine.html">可视化审批工作流引擎</a>——一个引擎，多种单据。</p>
+
+    <h2>结语</h2>
+    <p>BOM 和 MRP 奖励无聊工程：带版本和生效日期的边表、带防环和记忆化的展开、逐层净需求加清晰溯源、对快照跑批处理。数据模型对了算法就很短；数据模型错了，多少界面 polish 都救不回生产模块。</p>
+
+    <nav class="article-nav">
+      <a href="/zh/articles/gl-document-integration.html">← 上一篇：总账与业务单据一体化设计</a>
+      <a href="/zh/articles/visual-workflow-engine.html">下一篇：构建可视化审批工作流引擎 →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

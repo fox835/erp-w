@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 版 ERP 与电商平台集成方案 - erp-w.com</title>
+<meta name="description" content="Web 版 ERP 与电商平台对接的模式：订单拉取、库存推送与商品同步，以幂等、重试和冲突规则为底线，保证两边数据一致。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/ecommerce-integration.html">
+<meta property="og:title" content="Web 版 ERP 与电商平台集成方案 - erp-w.com">
+<meta property="og:description" content="订单、库存、商品同步的对接模式，幂等是底线。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/ecommerce-integration.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Web 版 ERP 与电商平台集成方案",
+  "description": "Web 版 ERP 与电商平台对接的模式：订单拉取、库存推送与商品同步，以幂等、重试和冲突规则为底线。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/ecommerce-integration.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "系统集成", "item": "https://erp-w.com/zh/articles/integration/" },
+    { "@type": "ListItem", "position": 3, "name": "Web 版 ERP 与电商平台集成方案", "item": "https://erp-w.com/zh/articles/ecommerce-integration.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/ecommerce-integration.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li>Web 版 ERP 与电商平台集成方案</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Web 版 ERP 与电商平台集成方案</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：系统集成</p>
+
+    <p>对很多企业来说，电商店铺是订单的诞生地，ERP 是订单的归宿。集成在白板上看很简单——订单进来、库存出去——然后现实就到了：限流、webhook 风暴、部分失败、SKU 对不上。本文介绍我们用来保持 ERP 与平台同步、全程无人二次录入的模式。</p>
+
+    <h2>三个同步面</h2>
+    <p>把平台集成当成三条独立的管线，各有方向、节奏和失败处理：</p>
+    <ul>
+      <li><strong>订单同步（入站）</strong>——平台订单变成 ERP 销售订单。</li>
+      <li><strong>库存同步（出站）</strong>——ERP 可用库存变成平台 listing 的可售数量。</li>
+      <li><strong>商品同步（出站、更慢）</strong>——物料、价格、描述从 ERP 流向平台，通常由主数据驱动。</li>
+    </ul>
+
+    <h2>订单同步：拉取胜过推送</h2>
+    <p>平台为新订单提供 webhook，webhook 当<em>通知</em>用没问题——但绝不能当唯一数据源。webhook 会丢、会乱序、会重复。可靠的模式：</p>
+    <ol>
+      <li>webhook（或每几分钟一次的定时轮询）触发一次<strong>增量订单拉取</strong>，从平台 API 按持久化的 <code>last_synced_at</code> 水位线取数。</li>
+      <li>每个订单映射为 ERP 销售订单，平台订单 ID 存为唯一外部键。</li>
+      <li>唯一键让摄取<strong>幂等</strong>：重复拉取同一订单是更新已有 ERP 单据，而不是新建重复单。</li>
+      <li>订单状态变化（已付款、已发货、已退款）走同一条水位线管线反方向——ERP 发货确认回传运单号到平台。</li>
+    </ol>
+    <p>每两到五分钟轮询对除秒杀外的所有场景都够用，它把"我们是不是丢了 webhook"从事故变成一个不是问题的问题。</p>
+
+    <h2>库存同步：防抖加优先</h2>
+    <p>可用库存一直在变——每次收货、发料、调整都可能触发推送。每次变化都推会刷爆平台 API 撞上限流。替代方案：</p>
+    <ul>
+      <li><strong>防抖</strong>——每个 SKU 累积一小段时间（30–60 秒）的变化，只推最新值。</li>
+      <li><strong>分优先级</strong>——低于安全库存的 SKU 立即推；动销慢的进防抖批次。</li>
+      <li><strong>留预留，不超卖</strong>——推 <code>可用 = 现存 - 预留 - 安全库存</code>。两个渠道同时卖最后一件的竞态交给平台在下单时兜底；你要做的是让这个竞态罕见。</li>
+    </ul>
+
+    <h2>商品同步：主数据契约</h2>
+    <p>商品同步比任何其他同步都更常静默失败：一边有一边没有的 SKU、对不上的计量单位、凭感觉映射的类目。用显式契约解决：</p>
+    <ul>
+      <li><strong>一个 SKU 字段是两边的事实源</strong>，不可变，不接受"差不多"的变体。</li>
+      <li><strong>映射表</strong>覆盖真正不同的字段（平台类目 ID、listing 标题、税收分类），映射表要被评审，而不是临场发挥。</li>
+      <li>同步以批处理 diff 报告的形式运行：推送前生成"将要改变什么"的差异清单；流程没赢得信任之前，先过人眼。</li>
+    </ul>
+
+    <h2>幂等与重试是底线</h2>
+    <p>每个出站调用带幂等键；每条入站消息按外部 ID 去重。重试用带抖动的指数退避，失败的作业进<strong>死信队列并配一个重试界面</strong>——运营可以查看、修正映射、重新跑失败的同步，而不是来找开发。同样的纪律也用在 ERP 自己的过账管线上；幂等模式在财务侧的应用见<a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a>。</p>
+
+    <h2>结语</h2>
+    <p>平台集成是一场不信任练习：不信任 webhook（水位线加轮询）、不信任只投递一次（幂等键）、不信任流量（防抖加优先）。从第一天起把这三个习惯做进去，即使平台倒霉的那一天，ERP 仍是唯一事实源。同样的可靠性思维用在屏幕上时，<a href="/zh/articles/enterprise-ui-patterns.html">企业级 Web 界面模式</a>对集成监控大屏一样适用。</p>
+
+    <nav class="article-nav">
+      <a href="/zh/articles/visual-workflow-engine.html">← 上一篇：构建可视化审批工作流引擎</a>
+      <a href="/zh/articles/enterprise-ui-patterns.html">下一篇：企业级 Web 界面模式：菜单、权限与重载表格 →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

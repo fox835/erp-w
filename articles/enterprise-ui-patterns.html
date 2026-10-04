@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables - erp-w.com</title>
+<meta name="description" content="Enterprise UI patterns for web ERP: permission-driven menu trees, virtualized heavy-duty tables for hundreds of columns and thousands of rows, and navigation guards for dirty forms.">
+<link rel="canonical" href="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<meta property="og:title" content="Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables - erp-w.com">
+<meta property="og:description" content="Menu trees driven by permissions, and table rendering strategies for hundreds of columns and thousands of rows.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables",
+  "description": "Enterprise UI patterns for web ERP: permission-driven menu trees, virtualized heavy-duty tables for hundreds of columns and thousands of rows, and navigation guards for dirty forms.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/enterprise-ui-patterns.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Enterprise UI", "item": "https://erp-w.com/articles/ui/" },
+    { "@type": "ListItem", "position": 3, "name": "Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables", "item": "https://erp-w.com/articles/enterprise-ui-patterns.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/enterprise-ui-patterns.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li>Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Enterprise UI</p>
+
+    <p>An ERP screen is not a landing page. Users sit in front of it for eight hours, navigate by memory, and judge the whole system by whether a 2,000-row stock ledger scrolls without stuttering. Three UI problems account for most of the enterprise-web effort: menus driven by permissions, tables that carry serious data volume, and forms that must not lose work. Here is how we handle each.</p>
+
+    <h2>Menus: generated from permissions, not hard-coded</h2>
+    <p>In an ERP with role-based access, the menu tree <em>is</em> the permission model made visible. Hard-coding menu entries in the frontend guarantees drift the day someone adds a role. Instead:</p>
+    <ul>
+      <li><strong>The backend owns the menu tree.</strong> Each menu item maps to a permission code; the frontend renders exactly what the user's permission set returns.</li>
+      <li><strong>Hide what you forbid.</strong> A menu item the user cannot open should not render at all. Security by obscurity is not security, but a wall of disabled items is noise; the route guard remains the real enforcement.</li>
+      <li><strong>Favorites and recency live client-side.</strong> Let power users pin their five daily screens to the top; it costs nothing and saves minutes every day.</li>
+    </ul>
+    <p>Keep the tree shallow — three levels is the practical maximum before users lose orientation. If a module needs more, use tabs or an in-page second navigation, not a deeper tree. This mirrors the module structure of the <a href="/articles/modular-monolith.html">modular monolith</a>: one route subtree per backend module.</p>
+
+    <h2>Heavy-duty tables: virtualization is non-negotiable</h2>
+    <p>Enterprise tables routinely show hundreds of columns and tens of thousands of rows. DOM nodes are the enemy:</p>
+    <ul>
+      <li><strong>Row virtualization</strong> — render only the visible window plus a small overscan buffer. Whether you hand-roll it or use a library, this is the single biggest win.</li>
+      <li><strong>Column virtualization for wide grids</strong> — financial ledgers with 40+ columns benefit from horizontal virtualization too.</li>
+      <li><strong>Pagination is still legitimate</strong> — for operational lists, a page size of 50–200 with server-side sorting and filtering is often better UX than an infinite virtual scroll, and far easier on memory.</li>
+      <li><strong>Sticky headers and frozen first columns</strong> — cheap to implement, disproportionate usability gain when scanning wide ledgers.</li>
+      <li><strong>Column show/hide and saved layouts</strong> — let each user curate the grid; persist per-user, per-screen.</li>
+    </ul>
+    <p>Measure with real data before optimizing: a table that is "slow" at 500 rows is usually a cell-rendering problem (unmemoized components, expensive per-cell formatting), not a virtualization problem.</p>
+
+    <h2>Master-detail and dirty-state protection</h2>
+    <p>The ERP workhorse screen is master-detail: an order list on top or left, the selected order's lines below or right. Two rules keep it sane:</p>
+    <ol>
+      <li><strong>One screen, one dirty form.</strong> If the user has edited an unsaved document and clicks another row, block with a dialog: "Discard changes / Save / Cancel". Losing an edited order because of a stray click is the kind of bug users never forgive — implement it as a router-level guard so it cannot be bypassed by keyboard navigation.</li>
+      <li><strong>Autosave drafts.</strong> For long documents, persist a draft to the server every minute or on field blur. "Saved 14:32" in the corner converts anxiety into trust.</li>
+    </ol>
+
+    <h2>Consistency beats novelty</h2>
+    <p>Enterprise users do not want to be delighted; they want to be unsurprised. Lock down a small component vocabulary — one table component, one form layout, one dialog style, one date and one number format per locale — and route every screen through it. The approval center, the MRP exception list and the integration monitor from <a href="/articles/ecommerce-integration.html">e-commerce integration</a> should feel like the same application, because they are. Frontend consistency is the UI-level reflection of the backend's boundary discipline: same <a href="/articles/visual-workflow-engine.html">workflow engine</a> underneath, same patterns on top.</p>
+
+    <h2>Conclusion</h2>
+    <p>Menus from permissions, tables that virtualize, forms that never lose work, and a component vocabulary small enough to memorize. None of it is glamorous; all of it is what makes a web ERP feel like a tool instead of a obstacle. Ship these four and the UI stops being the complaint users mention first.</p>
+
+    <nav class="article-nav">
+      <a href="/articles/ecommerce-integration.html">← Previous: Integrating a Web ERP with E-commerce Platforms</a>
+      <span></span>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业级 Web 界面模式：菜单、权限与重载表格 - erp-w.com</title>
+<meta name="description" content="Web 版 ERP 的企业级界面模式：权限驱动的菜单树、承载数百列数千行的虚拟化重载表格，以及表单脏状态保护。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/enterprise-ui-patterns.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/enterprise-ui-patterns.html">
+<meta property="og:title" content="企业级 Web 界面模式：菜单、权限与重载表格 - erp-w.com">
+<meta property="og:description" content="权限驱动的菜单树，以及百列千行表格的渲染策略。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/enterprise-ui-patterns.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "企业级 Web 界面模式：菜单、权限与重载表格",
+  "description": "Web 版 ERP 的企业级界面模式：权限驱动的菜单树、承载数百列数千行的虚拟化重载表格，以及表单脏状态保护。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/enterprise-ui-patterns.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "企业级界面", "item": "https://erp-w.com/zh/articles/ui/" },
+    { "@type": "ListItem", "position": 3, "name": "企业级 Web 界面模式：菜单、权限与重载表格", "item": "https://erp-w.com/zh/articles/enterprise-ui-patterns.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/enterprise-ui-patterns.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li>企业级 Web 界面模式：菜单、权限与重载表格</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>企业级 Web 界面模式：菜单、权限与重载表格</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：企业级界面</p>
+
+    <p>ERP 界面不是落地页。用户一天在它面前坐八小时，靠肌肉记忆导航，用"两千行的库存台账滚动卡不卡"来评判整个系统。企业级 Web 界面的大部分工作量集中在三个问题上：权限驱动的菜单、承载真实数据量的表格、不能丢工作的表单。逐个说我们的做法。</p>
+
+    <h2>菜单：由权限生成，而非硬编码</h2>
+    <p>在有角色权限的 ERP 里，菜单树<em>就是</em>权限模型的可视化。在前端硬编码菜单项，等于保证有人在加角色的第一天制造漂移。正确做法：</p>
+    <ul>
+      <li><strong>菜单树归后端所有。</strong>每个菜单项映射一个权限码；前端只渲染用户权限集返回的内容。</li>
+      <li><strong>禁用的就直接隐藏。</strong>用户打不开的菜单项根本不渲染。靠隐藏做安全不是安全，但一屏灰掉的禁用项是噪音；真正的 enforcement 在路由守卫。</li>
+      <li><strong>收藏和最近访问放客户端。</strong>让老用户把每天用的五个屏钉在顶部——成本为零，每天省好几分钟。</li>
+    </ul>
+    <p>树要浅——三级是用户不迷路的实际极限。如果模块需要更深，用标签页或页内二级导航，不要把树挖得更深。这镜像了<a href="/zh/articles/modular-monolith.html">模块化单体</a>的模块结构：每个后端模块对应一条路由子树。</p>
+
+    <h2>重载表格：虚拟化不是可选项</h2>
+    <p>企业表格随便就是几百列、几万行。DOM 节点是敌人：</p>
+    <ul>
+      <li><strong>行虚拟化</strong>——只渲染可视窗口加一小段 overscan 缓冲。手写还是上库随意，这是单项最大的收益。</li>
+      <li><strong>宽网格做列虚拟化</strong>——四十列以上的财务台账横向虚拟化同样有收益。</li>
+      <li><strong>分页仍然正当</strong>——对操作型列表，50–200 条一页加服务端排序过滤，常常比无限虚拟滚动体验更好、内存更省。</li>
+      <li><strong>粘性表头与冻结首列</strong>——实现便宜，扫宽台账时的可用性收益不成比例地大。</li>
+      <li><strong>列显示/隐藏与布局保存</strong>——让每个用户自己裁剪网格；按用户、按界面持久化。</li>
+    </ul>
+    <p>用真实数据测量再优化：一张"500 行就卡"的表格，问题通常是单元格渲染（组件没 memo、每格格式化太贵），而不是缺虚拟化。</p>
+
+    <h2>主从界面与脏状态保护</h2>
+    <p>ERP 的驮马屏幕是主从结构：上面或左边是订单列表，选中行的明细在下面或右边。两条规则让它不疯：</p>
+    <ol>
+      <li><strong>一屏一个脏表单。</strong>用户编辑了未保存的单据又点了另一行，弹对话框拦截："放弃修改 / 保存 / 取消"。一次误点击丢一张改了一半的订单，是那种用户永远不原谅的 bug——把它实现成路由级守卫，键盘导航也绕不过。</li>
+      <li><strong>草稿自动保存。</strong>长单据每分钟或失焦时把草稿存到服务端。角落里一个"已保存 14:32"，把焦虑变成信任。</li>
+    </ol>
+
+    <h2>一致性胜过新奇</h2>
+    <p>企业用户不想要惊喜，想要"不意外"。锁定一套小组件词汇表——一个表格组件、一种表单布局、一种对话框样式、一种日期和数字格式（按 locale）——让所有界面都从这套东西里长出来。审批中心、MRP 例外清单和<a href="/zh/articles/ecommerce-integration.html">电商集成</a>的监控大屏，应该感觉上是同一个应用，因为它们就是。前端一致性是后端边界纪律在 UI 层的投影：底下是同一个<a href="/zh/articles/visual-workflow-engine.html">工作流引擎</a>，上面是同一套模式。</p>
+
+    <h2>结语</h2>
+    <p>菜单来自权限、表格做虚拟化、表单永不丢工作、组件词汇表小到能背下来。没有一条光鲜，但正是这些让 Web 版 ERP 用起来像工具而不是障碍。这四件事做到位，界面就不再是用户第一个抱怨的东西。</p>
+
+    <nav class="article-nav">
+      <a href="/zh/articles/ecommerce-integration.html">← 上一篇：Web 版 ERP 与电商平台集成方案</a>
+      <span></span>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

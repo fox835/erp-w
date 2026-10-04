@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrating a Web ERP with E-commerce Platforms - erp-w.com</title>
+<meta name="description" content="Integration patterns between a web ERP and e-commerce platforms: order pull, inventory push and product sync, with idempotency, retries and conflict rules as the baseline.">
+<link rel="canonical" href="https://erp-w.com/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/ecommerce-integration.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/ecommerce-integration.html">
+<meta property="og:title" content="Integrating a Web ERP with E-commerce Platforms - erp-w.com">
+<meta property="og:description" content="Order, inventory and product sync patterns between ERP and marketplaces, with idempotency as the baseline.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/ecommerce-integration.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Integrating a Web ERP with E-commerce Platforms",
+  "description": "Integration patterns between a web ERP and e-commerce platforms: order pull, inventory push and product sync, with idempotency, retries and conflict rules as the baseline.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/ecommerce-integration.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Integration", "item": "https://erp-w.com/articles/integration/" },
+    { "@type": "ListItem", "position": 3, "name": "Integrating a Web ERP with E-commerce Platforms", "item": "https://erp-w.com/articles/ecommerce-integration.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/ecommerce-integration.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li>Integrating a Web ERP with E-commerce Platforms</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Integrating a Web ERP with E-commerce Platforms</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Integration</p>
+
+    <p>For many businesses the e-commerce store is where orders are born and the ERP is where they must end up. The integration looks simple on a whiteboard — orders in, inventory out — and then reality arrives: rate limits, webhook storms, partial failures, SKU mismatches. This article covers the patterns we use to keep ERP and marketplace in sync without a human re-keying anything.</p>
+
+    <h2>The three sync surfaces</h2>
+    <p>Treat platform integration as three separate pipelines, each with its own direction, cadence and failure handling:</p>
+    <ul>
+      <li><strong>Order sync (inbound)</strong> — marketplace orders become ERP sales orders.</li>
+      <li><strong>Inventory sync (outbound)</strong> — ERP stock levels become platform listings' available quantities.</li>
+      <li><strong>Product sync (outbound, slower)</strong> — items, prices and descriptions flow from ERP to the platform, usually master-data driven.</li>
+    </ul>
+
+    <h2>Order sync: pull beats push for correctness</h2>
+    <p>Platforms offer webhooks for new orders, and webhooks are fine as a <em>notification</em> — but never as the only source. Webhooks get lost, arrive out of order, and duplicate. The reliable pattern:</p>
+    <ol>
+      <li>Webhook (or a periodic poll every few minutes) triggers an <strong>incremental order fetch</strong> from the platform API with a persisted <code>last_synced_at</code> watermark.</li>
+      <li>Each fetched order is mapped to an ERP sales order with the platform order ID stored as a unique external key.</li>
+      <li>The unique key makes ingestion <strong>idempotent</strong>: re-fetching the same order updates the existing ERP document instead of creating a duplicate.</li>
+      <li>Order state changes (paid, shipped, refunded) follow the same watermark pipeline in reverse — ERP shipment confirmations push tracking numbers back to the platform.</li>
+    </ol>
+    <p>Polling every two to five minutes is plenty for everyone except flash-sale scenarios, and it converts "did we miss a webhook?" from an incident into a non-question.</p>
+
+    <h2>Inventory sync: debounce and prioritize</h2>
+    <p>Available stock changes constantly — every receipt, issue and adjustment can trigger a push. Pushing every change floods the platform API and hits rate limits. Instead:</p>
+    <ul>
+      <li><strong>Debounce</strong> — accumulate changes per SKU for a short window (30–60 seconds) and push only the latest value.</li>
+      <li><strong>Prioritize</strong> — SKUs at or below safety stock get pushed immediately; slow movers join the debounced batch.</li>
+      <li><strong>Reserve, don't oversell</strong> — push <code>available = on_hand - reserved - safety_stock</code>. Race conditions between two channels both selling the last unit are handled by the platform at checkout; your job is to make that race rare.</li>
+    </ul>
+
+    <h2>Product sync: the master-data contract</h2>
+    <p>Product sync fails silently more often than anything else: SKUs that exist on one side only, units that don't match, categories mapped by habit. Fix this with an explicit contract:</p>
+    <ul>
+      <li><strong>One SKU field is canonical</strong> in both systems, immutable, no "almost the same" variants.</li>
+      <li>A <strong>mapping table</strong> covers the fields that genuinely differ (platform category IDs, listing titles, tax classes), and it is reviewed, not improvised.</li>
+      <li>Sync runs as a batch report: before pushing, generate a diff of what would change; a human glances at it until the process has earned trust.</li>
+    </ul>
+
+    <h2>Idempotency and retries are the baseline</h2>
+    <p>Every outbound call carries an idempotency key; every inbound message is deduplicated by external ID. Retries use exponential backoff with jitter, and failed operations land on a <strong>dead-letter queue with a retry UI</strong> — an operator can inspect, fix the mapping and re-run a failed sync instead of asking engineering. The same discipline appears inside the ERP's own posting pipeline; see <a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a> for the idempotency patterns applied to finance.</p>
+
+    <h2>Conclusion</h2>
+    <p>Platform integration is an exercise in distrust: distrust webhooks (watermark and poll), distrust single deliveries (idempotency keys), distrust volume (debounce and prioritize). Build those three habits in from day one and the ERP stays the single source of truth even when the marketplace has a bad day. When the same reliability mindset is needed on screen, the UI patterns in <a href="/articles/enterprise-ui-patterns.html">Enterprise Web UI Patterns</a> apply just as well to integration monitoring dashboards.</p>
+
+    <nav class="article-nav">
+      <a href="/articles/visual-workflow-engine.html">← Previous: Building a Visual Approval Workflow Engine</a>
+      <a href="/articles/enterprise-ui-patterns.html">Next: Enterprise Web UI Patterns: Menus, Permissions, Heavy-Duty Tables →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>

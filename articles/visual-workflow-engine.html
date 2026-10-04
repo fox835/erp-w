@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Visual Approval Workflow Engine - erp-w.com</title>
+<meta name="description" content="A pragmatic workflow engine for web ERP: node types that cover real approvals, a simple instance state machine, and versioning process definitions without breaking in-flight instances.">
+<link rel="canonical" href="https://erp-w.com/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/visual-workflow-engine.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/visual-workflow-engine.html">
+<meta property="og:title" content="Building a Visual Approval Workflow Engine - erp-w.com">
+<meta property="og:description" content="A pragmatic workflow engine model: node types, state machines, and versioning process definitions.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/visual-workflow-engine.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Building a Visual Approval Workflow Engine",
+  "description": "A pragmatic workflow engine for web ERP: node types that cover real approvals, a simple instance state machine, and versioning process definitions without breaking in-flight instances.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/visual-workflow-engine.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Workflow", "item": "https://erp-w.com/articles/workflow/" },
+    { "@type": "ListItem", "position": 3, "name": "Building a Visual Approval Workflow Engine", "item": "https://erp-w.com/articles/visual-workflow-engine.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/visual-workflow-engine.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li>Building a Visual Approval Workflow Engine</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Building a Visual Approval Workflow Engine</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Workflow</p>
+
+    <p>Every ERP ends up needing approvals: purchase orders above a limit, price discounts, work-order release, credit notes. Buying a full BPM suite is heavy; hand-coding <code>if (amount > 50000) sendTo(manager)</code> for every case rots quickly. The middle path is a small workflow engine with a visual designer. This article describes the model we build, deliberately pragmatic.</p>
+
+    <h2>Scope it down</h2>
+    <p>Resist the temptation to build a general-purpose BPM engine. In our experience, approval flows in ERP need exactly four node types:</p>
+    <ul>
+      <li><strong>Start / end</strong> — bookends of the definition.</li>
+      <li><strong>Approval</strong> — a task assigned to a person or role (department head, finance controller), with a timeout and an escalation path.</li>
+      <li><strong>Condition</strong> — a boolean expression on document fields (amount, department, item category) deciding which branch to take.</li>
+      <li><strong>Countersign group</strong> — multiple approvers in <em>and</em> (all must approve) or <em>or</em> (first decides) mode.</li>
+    </ul>
+    <p>Four node types cover essentially every real approval we have met. Anything fancier — loops, subprocesses, message events — is where general BPM tools spend 80% of their complexity budget for 5% of the value.</p>
+
+    <h2>Definitions, versions and instances</h2>
+    <p>A <strong>process definition</strong> is a versioned graph: nodes, edges, and per-node configuration. An <strong>instance</strong> is one run attached to one business document (a purchase order, a discount request). The rules that keep this safe:</p>
+    <ul>
+      <li>Definitions are <strong>immutable once published</strong>. Editing a published flow creates a new version.</li>
+      <li>An instance <strong>binds to the definition version</strong> it was started with, and stores a snapshot. A flow started under v3 keeps running under v3 even after v4 publishes — mid-flight documents never silently change rules.</li>
+      <li>Only one version is the <strong>default for new instances</strong>; old versions retire naturally as their instances finish.</li>
+    </ul>
+
+    <h2>The instance state machine</h2>
+    <p>Keep the instance state model embarrassingly simple. Each instance has a current node; each node task has a state of pending / approved / rejected. Transitions:</p>
+    <ol>
+      <li>Start → first node task created, assigned per node config (role resolution happens at assignment time, so a vacant position does not stall the flow silently — it escalates).</li>
+      <li>Approver acts → task resolved, engine evaluates the node's completion rule (countersign mode, vote thresholds).</li>
+      <li>Next node chosen by evaluating outgoing condition edges in order.</li>
+      <li>Reject → instance goes to a terminal <code>REJECTED</code> state, optionally with a "resubmit" path that restarts the flow.</li>
+      <li>No more nodes → <code>APPROVED</code>; the engine fires an event the business module listens for.</li>
+    </ol>
+    <p>Every action — assignment, approval, rejection, escalation — is an append-only log entry on the instance. The approval trail a manager sees is just this log rendered; so is the audit evidence.</p>
+
+    <h2>Integration with business modules</h2>
+    <p>The engine owns <em>orchestration</em>, never <em>business data</em>. Business modules attach a workflow to a document type and subscribe to the <code>APPROVED</code> / <code>REJECTED</code> events. This keeps the engine a pure component of the <a href="/articles/modular-monolith.html">modular monolith</a>: sales, purchasing, production and finance all reuse the same engine without the engine knowing what a "sales order" is. Timeouts and escalations run on a scheduled sweeper that scans pending tasks past their deadline.</p>
+
+    <h2>The visual designer</h2>
+    <p>The designer is a canvas where consultants drag the four node types, connect them, and configure each node in a side panel. Under the hood it edits the same JSON graph the engine executes — no model-to-model translation. Validation before publish checks the boring-but-fatal things: unreachable nodes, conditions without else branches, approval nodes without assignees. Keep the canvas simple (grid snap, straight edges); you are drawing approval chains, not circuit boards. For the rendering side of similarly dense enterprise screens, see <a href="/articles/enterprise-ui-patterns.html">Enterprise Web UI Patterns</a>.</p>
+
+    <h2>Conclusion</h2>
+    <p>A workflow engine earns its keep by being smaller than people expect: four node types, versioned immutable definitions, a per-node state machine, an append-only action log, and event-based integration. Build that well and every approval in the ERP — present and future — becomes configuration instead of code.</p>
+
+    <nav class="article-nav">
+      <a href="/articles/bom-mrp-web.html">← Previous: Implementing BOM Explosion and MRP in a Web ERP</a>
+      <a href="/articles/ecommerce-integration.html">Next: Integrating a Web ERP with E-commerce Platforms →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>

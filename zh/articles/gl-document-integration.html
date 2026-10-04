@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>总账与业务单据一体化设计 - erp-w.com</title>
+<meta name="description" content="Web 版 ERP 的单据到凭证管线设计：按单据类型的过账模板、幂等的过账引擎，以及审计认可的对账机制，让每个业务事件自动入账。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/gl-document-integration.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/gl-document-integration.html">
+<meta property="og:title" content="总账与业务单据一体化设计 - erp-w.com">
+<meta property="og:description" content="设计单据到凭证的流转管线，让每个业务事件自动入账。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/gl-document-integration.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "总账与业务单据一体化设计",
+  "description": "Web 版 ERP 的单据到凭证管线设计：按单据类型的过账模板、幂等的过账引擎，以及审计认可的对账机制。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/gl-document-integration.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "财务模块", "item": "https://erp-w.com/zh/articles/finance/" },
+    { "@type": "ListItem", "position": 3, "name": "总账与业务单据一体化设计", "item": "https://erp-w.com/zh/articles/gl-document-integration.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/gl-document-integration.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li>总账与业务单据一体化设计</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>总账与业务单据一体化设计</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：财务模块</p>
+
+    <p>ERP 系统最有价值的属性只有一条：每一张业务单据——销售发货、采购入库、收付款——不经过任何人二次录入就能落进总账。这条管线一旦打通，账永远是最新的，月末结账不再是救火。本文介绍我们在 Web 版 ERP 项目中使用的单据到凭证设计方案。</p>
+
+    <h2>核心思想：业务单据不认识会计</h2>
+    <p>把会计逻辑挡在业务模块之外。销售发货模块应该只输出事实——"100 件 A 物料以单价 P 从 W 仓发出给客户 C"——由专门的过账引擎决定这对总账意味着什么。这个分离在<a href="/zh/articles/modular-monolith.html">模块化单体</a>中是自然结果：会计规则可以随税率、科目映射的变化而演进，业务操作代码一行不动。</p>
+
+    <h2>过账管线</h2>
+    <ol>
+      <li><strong>业务事件</strong>——单据在自己的模块中被确认（过账）。确认是一次状态迁移而不是一次保存：已确认单据即被冻结。</li>
+      <li><strong>过账请求</strong>——模块发布过账请求，包含单据类型、主键、金额和维度（组织、部门、项目、币种）。</li>
+      <li><strong>模板解析</strong>——过账引擎按单据类型解析<em>过账模板</em>。模板把单据字段映射为借贷规则："发货 → 借主营业务成本，贷库存商品；应收 → 借应收账款，贷主营业务收入"。</li>
+      <li><strong>凭证生成</strong>——引擎生成一张平衡的凭证（借贷相等作为硬不变量），折算为记账本位币，每一行都挂上来源单据引用。</li>
+      <li><strong>写入总账</strong>——数据库允许时凭证与单据确认同事务写入；模块解耦时通过 outbox 模式异步投递。</li>
+    </ol>
+
+    <h2>过账模板即配置</h2>
+    <p>绝不把科目编码写死。过账模板是一张小型规则表，通常由实施顾问维护：每种单据类型、每种业务场景（仓间调拨、委托代销、退货）声明借什么、贷什么、金额从哪个单据字段取。模板带版本和生效日期——下个季度起的税率变化是新模板版本，不是一次代码上线。</p>
+    <p>保持模板简单：一行行地列科目、方向、金额表达式、维度映射。模板里一旦出现循环和条件分支，顾问就维护不了了——那是你用一种很烂的方式发明了第二门编程语言。</p>
+
+    <h2>幂等：过账必须可以安全重试</h2>
+    <p>任何 Web 系统里重试都是必然发生的。过账引擎必须幂等：同一单据过账两次只产生一张凭证，而不是两张。两个机制让这件事落地：</p>
+    <ul>
+      <li><strong>凭证自然键</strong>——在 <code>(来源单据类型, 来源单据ID)</code> 上加唯一约束，重复插入直接报错。</li>
+      <li><strong>Outbox 模式</strong>——过账请求和单据确认写在同一个事务里落 outbox 表，再由 relay 异步投递。relay 崩溃就重读 outbox；唯一键负责去重。</li>
+    </ul>
+    <p>冲销遵循同一规则：取消单据生成<em>冲销凭证</em>，绝不在原地修改。总账只追加，更正走新分录。</p>
+
+    <h2>期间控制与结账</h2>
+    <p>两道护栏保证总账不疯：</p>
+    <ul>
+      <li><strong>期间状态</strong>——每个会计期间分为打开、软关闭（禁止人工录入，允许引擎补记）、关闭（什么都不行）。过账引擎写入前检查期间状态。</li>
+      <li><strong>子模块对账</strong>——应收应付子模块余额、库存估值与总账统驭科目持续对账，任何漂移都上监控大屏，而不是等到审计才被发现。</li>
+    </ul>
+
+    <h2>用户看到什么</h2>
+    <p>用户体验很简单：确认单据，点"查看凭证"看生成的分录；出错了点"过账日志"。绝不隐藏失败——单据已确认但过账失败是最糟糕的状态，UI 必须立即暴露它，并在问题解决前阻止期间关闭。这套管线在前端的呈现方式见<a href="/zh/articles/enterprise-ui-patterns.html">企业级 Web 界面模式</a>；生产侧同一管线的物料成本去向，见<a href="/zh/articles/bom-mrp-web.html">BOM 展开与 MRP 运算实现</a>。</p>
+
+    <h2>结语</h2>
+    <p>把总账当作业务事件的消费者，用声明式模板生成凭证，让过账幂等且只追加，用对账大屏代替 Excel 结账。做到这些，财务不再是 ERP 的瓶颈——它变成永远正确的那部分。</p>
+
+    <nav class="article-nav">
+      <a href="/zh/articles/modular-monolith.html">← 上一篇：模块化单体：Web 版 ERP 的务实架构选择</a>
+      <a href="/zh/articles/bom-mrp-web.html">下一篇：Web 版 ERP 的 BOM 展开与 MRP 运算实现 →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

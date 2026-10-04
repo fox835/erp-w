@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模块化单体：Web 版 ERP 的务实架构选择 - erp-w.com</title>
+<meta name="description" content="为什么模块化单体胜过微服务：Web 版 ERP 的模块边界设计、边界强制手段，以及一个模块真正值得拆分为独立服务的判断标准。">
+<link rel="canonical" href="https://erp-w.com/zh/articles/modular-monolith.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/modular-monolith.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/modular-monolith.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/modular-monolith.html">
+<meta property="og:title" content="模块化单体：Web 版 ERP 的务实架构选择 - erp-w.com">
+<meta property="og:description" content="为什么模块化单体胜过微服务，以及模块边界该如何划分。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/zh/articles/modular-monolith.html">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "模块化单体：Web 版 ERP 的务实架构选择",
+  "description": "为什么模块化单体胜过微服务：Web 版 ERP 的模块边界设计、边界强制手段，以及一个模块真正值得拆分为独立服务的判断标准。",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/zh/articles/modular-monolith.html",
+  "inLanguage": "zh-CN"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://erp-w.com/zh/" },
+    { "@type": "ListItem", "position": 2, "name": "架构与选型", "item": "https://erp-w.com/zh/articles/arch/" },
+    { "@type": "ListItem", "position": 3, "name": "模块化单体：Web 版 ERP 的务实架构选择", "item": "https://erp-w.com/zh/articles/modular-monolith.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/zh/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="打开菜单"><span></span></label>
+    <nav class="site-nav">
+      <a href="/zh/">首页</a>
+      <a href="/zh/articles/">全部文章</a>
+      <a href="/zh/articles/arch/">架构选型</a>
+      <a href="/zh/articles/finance/">财务模块</a>
+      <a href="/zh/articles/prod/">生产MRP</a>
+      <a href="/zh/articles/workflow/">工作流</a>
+      <a href="/zh/articles/integration/">系统集成</a>
+      <a href="/zh/articles/ui/">界面</a>
+      <a href="/zh/about.html">关于</a>
+      <a class="lang-switch" href="/articles/modular-monolith.html" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="面包屑">
+  <ol>
+    <li><a href="/zh/">首页</a></li>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li>模块化单体：Web 版 ERP 的务实架构选择</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>栏目</h3>
+  <ul>
+    <li><a href="/zh/articles/arch/">架构与选型</a></li>
+    <li><a href="/zh/articles/finance/">财务模块</a></li>
+    <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+    <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+    <li><a href="/zh/articles/integration/">系统集成</a></li>
+    <li><a href="/zh/articles/ui/">企业级界面</a></li>
+    <li><a href="/zh/articles/">全部文章</a></li>
+  </ul>
+  <h3>热门文章</h3>
+  <ul>
+    <li><a href="/zh/articles/modular-monolith.html">模块化单体：Web 版 ERP 的务实架构选择</a></li>
+    <li><a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a></li>
+    <li><a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a></li>
+  </ul>
+  <h3>关于本站</h3>
+  <ul>
+    <li><a href="/zh/about.html">站点介绍</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>模块化单体：Web 版 ERP 的务实架构选择</h1>
+    <p class="article-meta">发布时间：2026-10-04 | 分类：架构与选型</p>
+
+    <p>每个做 Web 版 ERP 的团队迟早都会面对同一个问题：微服务还是单体？在交付了几套中型 ERP 系统之后，我们的默认答案是<strong>模块化单体</strong>——一个部署单元，内部模块严格隔离。本文解释为什么，以及如何防止单体退化成一坨泥。</p>
+
+    <h2>为什么不用微服务</h2>
+    <p>微服务解决的是组织问题：十几个工程师的团队各自独立发布、热点路径独立扩容、多语言技术栈被专门的工作负载证明合理。而一个典型的 Web 版 ERP 项目，团队五到二十人、一个发布窗口、一个共享关系库——财务、库存、生产数据本来就必须保持一致。</p>
+    <p>在这种条件下，微服务买来的 mostly 是成本：单据过账要处理分布式事务、用户能直接看到最终一致性的裂缝、每个服务重复一遍脚手架，还有服务发现、链路追踪、版本管理这套运维负担——小团队背不动。常见的失败模式大家都很熟悉：所谓"微服务"全都读写同一个数据库——两头吃亏。</p>
+
+    <h2>模块化单体到底意味着什么</h2>
+    <p>模块化单体是单一进程、单一部署，但内部按硬边界组织成一组模块。每个模块拥有自己的：</p>
+    <ul>
+      <li><strong>数据表</strong>——跨模块没有外键，不许 JOIN 别人的表。</li>
+      <li><strong>公开 API</strong>——其他模块只能调用内存中的接口或应用服务，绝不直接碰别人的 repository。</li>
+      <li><strong>领域事件</strong>——状态变化通过内部事件总线广播，依赖模块订阅响应，而不是反向调用。</li>
+    </ul>
+    <p>纪律性是模块化单体与分层单体的唯一区别。部署是统一的，代码库不是自由市场。</p>
+
+    <h2>模块边界怎么切</h2>
+    <p>按业务能力切分，对齐客户组织的思维方式：</p>
+    <ul>
+      <li><strong>基础数据</strong>——物料、客户、供应商、仓库、计量单位、币种。</li>
+      <li><strong>库存</strong>——现存量、入库、出库、调拨、盘点。</li>
+      <li><strong>采购与销售</strong>——订单、收货、发货、价格。</li>
+      <li><strong>财务</strong>——科目表、凭证、应收应付、期末结账，见<a href="/zh/articles/gl-document-integration.html">总账与业务单据一体化设计</a>。</li>
+      <li><strong>生产</strong>——BOM、MRP、工单，见<a href="/zh/articles/bom-mrp-web.html">Web 版 ERP 的 BOM 展开与 MRP 运算实现</a>。</li>
+      <li><strong>工作流</strong>——挂在任意模块单据上的审批流程。</li>
+    </ul>
+    <p>两条经验法则：一个模块应该对应领域里一个有界上下文；跨模块的调用应该"稍微费劲"。如果调别人的模块和自己的代码一样顺手，那边界就不存在。</p>
+
+    <h2>用工具强制边界</h2>
+    <p>光靠约定会在 deadline 面前腐烂。用机械手段强制执行：</p>
+    <ol>
+      <li><strong>按模块分包，不按层分包。</strong>每个模块内部自带 controller、service、repository、entity。全局的 <code>service</code> 或 <code>dao</code> 包是泥球化的第一步。</li>
+      <li><strong>静态分析门禁。</strong>ArchUnit（Java）或 dependency-cruiser（TypeScript）在模块 A 引用模块 B 内部实现时直接让构建失败，CI 每次提交都跑。</li>
+      <li><strong>模块各自管理迁移。</strong>每个模块应用自己的 schema 迁移，共享迁移文件夹会掩盖跨模块的表耦合。</li>
+      <li><strong>反应用事件总线。</strong>销售发货确认后，库存订阅 <code>DeliveryConfirmed</code> 事件而不是被销售模块直接调用，依赖图保持无环。</li>
+    </ol>
+
+    <h2>什么时候一个模块真的值得拆出去</h2>
+    <p>当以下条件之一可以被度量地证实时，一个模块才配得上独立服务：</p>
+    <ul>
+      <li><strong>扩容画像不同</strong>——比如报表生成把 CPU 打满，交易在排队。</li>
+      <li><strong>可用性要求不同</strong>——比如通知服务必须在核心系统月结停机时仍然存活。</li>
+      <li><strong>有独立团队</strong>负责，按不同的节奏发布。</li>
+    </ul>
+    <p>因为边界在进程内已经被强制执行，把一个模块拆成服务主要是打包工作：把内存接口换成 HTTP 或消息客户端。从第一天就上微服务的团队要为每个模块预付这笔成本；模块化单体只在数据证明值得时才支付。</p>
+
+    <h2>前端一侧</h2>
+    <p>模块化不止于 API。Web 前端应镜像模块结构：每个模块一条路由子树、按功能组织代码、权限系统决定用户能看到哪些菜单——即<a href="/zh/articles/enterprise-ui-patterns.html">企业级 Web 界面模式</a>中描述的方案。</p>
+
+    <h2>结语</h2>
+    <p>对大多数 Web 版 ERP 项目来说，争论不是单体对微服务，而是有纪律的单体对失控的单体。选择模块化单体，用工具强制边界，让真实的运行数据告诉你某个模块是否该离开进程。你会发布得更快、排查得更轻松，而且逃生舱门一直开着。</p>
+
+    <nav class="article-nav">
+      <span></span>
+      <a href="/zh/articles/gl-document-integration.html">下一篇：总账与业务单据一体化设计 →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP Web 版技术站：架构、财务、生产、工作流、集成与界面。联系邮箱：<a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>栏目导航</h4>
+        <ul>
+          <li><a href="/zh/articles/arch/">架构与选型</a></li>
+          <li><a href="/zh/articles/finance/">财务模块</a></li>
+          <li><a href="/zh/articles/prod/">生产与 MRP</a></li>
+          <li><a href="/zh/articles/workflow/">工作流审批</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>相关站点</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · 进销存技术</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI 进销存</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · 信息管理</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · 进销存 Web 版</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web 版技术站</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implementing BOM Explosion and MRP in a Web ERP - erp-w.com</title>
+<meta name="description" content="Practical implementation of BOM explosion and MRP in a web ERP: BOM tree modeling, cycle-safe recursive explosion, netting logic, and keeping runs fast enough for the browser.">
+<link rel="canonical" href="https://erp-w.com/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="en" href="https://erp-w.com/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="zh-CN" href="https://erp-w.com/zh/articles/bom-mrp-web.html">
+<link rel="alternate" hreflang="x-default" href="https://erp-w.com/articles/bom-mrp-web.html">
+<meta property="og:title" content="Implementing BOM Explosion and MRP in a Web ERP - erp-w.com">
+<meta property="og:description" content="Recursive BOM traversal, MRP netting logic, and keeping calculation time acceptable in the browser era.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://erp-w.com/articles/bom-mrp-web.html">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Implementing BOM Explosion and MRP in a Web ERP",
+  "description": "Practical implementation of BOM explosion and MRP in a web ERP: BOM tree modeling, cycle-safe recursive explosion, netting logic, and keeping runs fast enough for the browser.",
+  "datePublished": "2026-10-04",
+  "dateModified": "2026-10-04",
+  "author": { "@type": "Organization", "name": "erp-w.com" },
+  "mainEntityOfPage": "https://erp-w.com/articles/bom-mrp-web.html",
+  "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://erp-w.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Manufacturing & MRP", "item": "https://erp-w.com/articles/prod/" },
+    { "@type": "ListItem", "position": 3, "name": "Implementing BOM Explosion and MRP in a Web ERP", "item": "https://erp-w.com/articles/bom-mrp-web.html" }
+  ]
+}
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/">ERP-W<span>.com</span></a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-burger" aria-label="Open menu"><span></span></label>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/articles/">Articles</a>
+      <a href="/articles/arch/">Architecture</a>
+      <a href="/articles/finance/">Finance</a>
+      <a href="/articles/prod/">Manufacturing</a>
+      <a href="/articles/workflow/">Workflow</a>
+      <a href="/articles/integration/">Integration</a>
+      <a href="/articles/ui/">UI</a>
+      <a href="/about.html">About</a>
+      <a class="lang-switch" href="/zh/articles/bom-mrp-web.html" hreflang="zh-CN">中文</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li>Implementing BOM Explosion and MRP in a Web ERP</li>
+  </ol>
+</nav>
+</div>
+
+<div class="wrap layout">
+<aside class="sidebar">
+  <h3>Sections</h3>
+  <ul>
+    <li><a href="/articles/arch/">Architecture</a></li>
+    <li><a href="/articles/finance/">Finance</a></li>
+    <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+    <li><a href="/articles/workflow/">Workflow</a></li>
+    <li><a href="/articles/integration/">Integration</a></li>
+    <li><a href="/articles/ui/">Enterprise UI</a></li>
+    <li><a href="/articles/">All Articles</a></li>
+  </ul>
+  <h3>Popular</h3>
+  <ul>
+    <li><a href="/articles/modular-monolith.html">Modular Monolith: A Practical Architecture for Web-Based ERP</a></li>
+    <li><a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a></li>
+    <li><a href="/articles/bom-mrp-web.html">Implementing BOM Explosion and MRP in a Web ERP</a></li>
+  </ul>
+  <h3>About</h3>
+  <ul>
+    <li><a href="/about.html">About This Site</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+  <article class="article">
+    <h1>Implementing BOM Explosion and MRP in a Web ERP</h1>
+    <p class="article-meta">Published: 2026-10-04 | Category: Manufacturing &amp; MRP</p>
+
+    <p>BOM explosion and MRP are where an ERP's manufacturing module earns its keep — and where naive implementations fall apart on real data. A finished product with a ten-level BOM repeated across hundreds of orders explodes into tens of thousands of component lines. This article walks through the data model and algorithms we use, tuned for a web architecture where planners expect results in seconds.</p>
+
+    <h2>Modeling the BOM</h2>
+    <p>The BOM is a directed acyclic graph, stored as an edge table: <code>(parent_item_id, component_item_id, quantity, scrap_rate, version, effective_dates)</code>. Three modeling decisions matter:</p>
+    <ul>
+      <li><strong>Versions and effectivity dates</strong> — a component change must not rewrite history. Each BOM edge carries a version and a validity window; explosion always takes "the version effective on the planned date".</li>
+      <li><strong>Scrap / yield on the edge</strong> — consuming 1.06 units because 6% is lost in an operation is edge data, not something MRP should guess.</li>
+      <li><strong>Phantom items</strong> — subassemblies that are never stocked should be marked <code>phantom</code> and exploded straight through, otherwise MRP generates plan orders for things nobody builds separately.</li>
+    </ul>
+
+    <h2>Explosion: recursive, memoized, cycle-guarded</h2>
+    <p>Explosion multiplies quantities down the tree. Two non-negotiable guards:</p>
+    <ol>
+      <li><strong>Cycle detection</strong> — maintain a visited set per path; an item re-appearing on its own path means bad master data, and the run must abort with a clear message naming the cycle, not recurse until stack overflow.</li>
+      <li><strong>Memoization</strong> — the same semi-finished subassembly often appears in many branches. Cache the exploded subtree per item (keyed by item, version and quantity factor) and the run collapses from exponential to roughly linear in distinct items.</li>
+    </ol>
+    <p>In practice, an explosion that touches 5,000 distinct items completes in well under a second server-side. The result is stored as a snapshot so planners can audit exactly what the MRP run saw.</p>
+
+    <h2>Netting: from gross requirements to planned orders</h2>
+    <p>Classic MRP netting per item, per planning bucket (usually per day or week):</p>
+    <ol>
+      <li><strong>Gross requirements</strong> — sum of exploded demand plus independent demand (sales forecasts, spare parts).</li>
+      <li><strong>Scheduled receipts</strong> — open purchase orders and firm planned orders arriving in the bucket.</li>
+      <li><strong>Projected available</strong> — on-hand minus safety stock, carried bucket to bucket.</li>
+      <li><strong>Net requirement</strong> — when projected available goes negative, a planned order is created with the item's lot-sizing rule (lot-for-lot, fixed lot, or minimum quantity) and lead time offsetting.</li>
+    </ol>
+    <p>Process items in low-level-code order (components after their parents) so every parent demand is known before a component is netted. Compute low-level codes once per BOM version change, not per MRP run.</p>
+
+    <h2>Keeping it fast</h2>
+    <ul>
+      <li><strong>Run MRP as a batch job</strong>, snapshotting inputs (inventory, open orders, BOM versions) at start. Interactive runs against live data produce irreproducible results and angry planners.</li>
+      <li><strong>Incremental regeneration</strong> — re-run only items under a changed BOM subtree or with changed demand; full runs nightly, incremental runs on demand.</li>
+      <li><strong>Expose results as data, not as magic</strong> — every planned order links back to its pegging information (which parent orders drove it), so planners can trace a number instead of trusting it.</li>
+    </ul>
+
+    <h2>From planned orders to the shop floor</h2>
+    <p>Planned orders become work orders when a planner firms them. Work orders carry their own BOM snapshot (a copy, not a reference — the design BOM will drift) and route; material issues and completions feed back into inventory, which posts through the same financial pipeline described in <a href="/articles/gl-document-integration.html">Integrating General Ledger with Business Documents</a>. Scrap and rework are recorded against the work order so costing reflects reality. For approvals on work-order release, we reuse the same workflow engine described in <a href="/articles/visual-workflow-engine.html">Building a Visual Approval Workflow Engine</a> — one engine, many document types.</p>
+
+    <h2>Conclusion</h2>
+    <p>BOM and MRP reward boring engineering: an edge table with versions and effectivity, a memoized explosion with a cycle guard, level-by-level netting with clear pegging, and batch runs against snapshots. Nail the data model and the algorithms stay small; skip them and no amount of UI polish will save the manufacturing module.</p>
+
+    <nav class="article-nav">
+      <a href="/articles/gl-document-integration.html">← Previous: Integrating General Ledger with Business Documents</a>
+      <a href="/articles/visual-workflow-engine.html">Next: Building a Visual Approval Workflow Engine →</a>
+    </nav>
+  </article>
+</main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>ERP-W.com</h4>
+        <p>ERP web technology: architecture, finance, manufacturing, workflow, integration and UI. Contact: <a href="mailto:webnic@qq.com">webnic@qq.com</a></p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="/articles/arch/">Architecture</a></li>
+          <li><a href="/articles/finance/">Finance</a></li>
+          <li><a href="/articles/prod/">Manufacturing &amp; MRP</a></li>
+          <li><a href="/articles/workflow/">Workflow</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Related Sites</h4>
+        <ul>
+          <li><a href="https://jxc.js.cn" rel="noopener">jxc.js.cn · Inventory Tech</a></li>
+          <li><a href="https://psi.js.cn" rel="noopener">psi.js.cn · PSI System</a></li>
+          <li><a href="https://ims.js.cn" rel="noopener">ims.js.cn · IMS Tech</a></li>
+          <li><a href="https://jxc-w.com" rel="noopener">jxc-w.com · Web Inventory</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copyright">© 2026 erp-w.com · ERP Web Technology Hub</p>
+  </div>
+</footer>
+
+</body>
+</html>
